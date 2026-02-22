@@ -24,9 +24,7 @@ bun run preview          # launch Vite+React preview app on localhost:3000
 - `skills/docx-template/agent/refine.ts` — Surgical modifications to existing templates
 - `skills/docx-template/agent/dist/` — Pre-bundled standalone JS files (committed, no install needed at runtime)
 - `skills/docx-template/agent/prompts/` — Agent prompt guides for each phase
-- `rules/` — Rules files for Cursor and Windsurf
 - `preview/` — Vite+React split-pane compare/render UI
-- `bin/init.js` — CLI for manual install / Cursor / Windsurf
 - `test/verify-styling.ts` — Tests for XML manipulation correctness
 
 ## Distribution

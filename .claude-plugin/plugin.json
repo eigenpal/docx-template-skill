@@ -1,5 +1,12 @@
 {
   "name": "docx-template",
   "version": "0.1.0",
-  "description": "Generate docxtemplater-compatible DOCX templates from example files"
+  "description": "Generate docxtemplater-compatible DOCX templates from example files",
+  "author": {
+    "name": "eigenpal",
+    "url": "https://github.com/eigenpal"
+  },
+  "repository": "https://github.com/eigenpal/docx-template-skill",
+  "license": "MIT",
+  "keywords": ["docx", "template", "docxtemplater", "document-generation"]
 }

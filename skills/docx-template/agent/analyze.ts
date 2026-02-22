@@ -325,21 +325,119 @@ async function analyze(docxPath: string): Promise<AnalysisResult> {
   };
 }
 
+/**
+ * Compare multiple analysis results to find which text varies (likely
+ * variables) vs stays the same (static content).
+ */
+function diffAnalyses(
+  results: Array<{ file: string; analysis: AnalysisResult }>
+): {
+  staticText: string[];
+  varyingText: Array<{ paragraphIndex: number; values: string[] }>;
+  suggestedFields: SuggestedField[];
+} {
+  if (results.length < 2) {
+    return {
+      staticText: [],
+      varyingText: [],
+      suggestedFields: results[0]?.analysis.suggestedFields ?? [],
+    };
+  }
+
+  const base = results[0].analysis;
+  const staticText: string[] = [];
+  const varyingText: Array<{ paragraphIndex: number; values: string[] }> = [];
+
+  for (let i = 0; i < base.paragraphs.length; i++) {
+    const baseText = base.paragraphs[i].text;
+    const others = results.slice(1).map((r) => r.analysis.paragraphs[i]?.text ?? "");
+    const allSame = others.every((t) => t === baseText);
+
+    if (allSame) {
+      staticText.push(baseText);
+    } else {
+      varyingText.push({
+        paragraphIndex: i,
+        values: [baseText, ...others],
+      });
+    }
+  }
+
+  // Merge suggested fields from all files, deduplicated
+  const seen = new Set<string>();
+  const allSuggested: SuggestedField[] = [];
+  for (const r of results) {
+    for (const f of r.analysis.suggestedFields) {
+      const key = `${f.suggestedTag}:${f.value}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        allSuggested.push(f);
+      }
+    }
+  }
+
+  // Add varying paragraphs as suggested fields
+  for (const v of varyingText) {
+    const key = `varying:para${v.paragraphIndex}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      allSuggested.push({
+        value: v.values[0],
+        suggestedTag: `field${v.paragraphIndex}`,
+        reason: `Text varies across ${results.length} examples: ${v.values.map((s) => `"${s.substring(0, 40)}"`).join(", ")}`,
+        location: `paragraph ${v.paragraphIndex}`,
+      });
+    }
+  }
+
+  return { staticText, varyingText, suggestedFields: allSuggested };
+}
+
 async function main() {
   const args = process.argv.slice(2);
   if (args.length < 1) {
-    console.error("Usage: node analyze.js <path-to-docx>");
+    console.error("Usage: node analyze.js <path-to-docx> [path2.docx] [path3.docx] ...");
     process.exit(1);
   }
 
-  const docxPath = path.resolve(args[0]);
-  if (!fs.existsSync(docxPath)) {
-    console.error(`File not found: ${docxPath}`);
-    process.exit(1);
+  // Resolve and validate all paths
+  const paths: string[] = [];
+  for (const arg of args) {
+    const p = path.resolve(arg);
+    if (!fs.existsSync(p)) {
+      console.error(`File not found: ${p}`);
+      process.exit(1);
+    }
+    paths.push(p);
   }
 
-  const result = await analyze(docxPath);
-  console.log(JSON.stringify(result, null, 2));
+  if (paths.length === 1) {
+    // Single file: output analysis directly
+    const result = await analyze(paths[0]);
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    // Multiple files: analyze each, then diff
+    const results = [];
+    for (const p of paths) {
+      const analysis = await analyze(p);
+      results.push({ file: path.basename(p), analysis });
+    }
+
+    const diff = diffAnalyses(results);
+    const output = {
+      files: results.map((r) => r.file),
+      fileCount: results.length,
+      diff: {
+        staticParagraphs: diff.staticText.length,
+        varyingParagraphs: diff.varyingText.length,
+        varyingText: diff.varyingText,
+      },
+      suggestedFields: diff.suggestedFields,
+      // Include full analysis of first file as reference
+      referenceAnalysis: results[0].analysis,
+    };
+    console.log(JSON.stringify(output, null, 2));
+  }
 }
 
 main().catch((err) => {

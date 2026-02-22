@@ -81,7 +81,7 @@ function installClaudeSkill(scope) {
     log("skill/ already exists in skill dir, skipping");
   }
 
-  // Copy package.json + tsconfig.json so `npm install && npm run build` works
+  // Copy package.json + tsconfig.json so `bun install && bun run build` works
   copyFileIfNotExists(
     path.join(skillRoot, "package.json"),
     path.join(base, "package.json")
@@ -266,7 +266,7 @@ function main() {
 
   console.log("\nDone! Next steps:");
   console.log("  1. Place example .docx files in examples/");
-  console.log("  2. Install skill deps: cd .claude/skills/docx-template && npm install && npm run build");
+  console.log("  2. Install skill deps: cd .claude/skills/docx-template && bun install && bun run build");
   console.log("  3. Use /docx-template in Claude Code to analyze and template files");
   console.log("  4. Or ask your agent: \"Analyze examples/invoice.docx and create a template\"\n");
 }

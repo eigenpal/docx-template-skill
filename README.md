@@ -11,8 +11,8 @@ Clone into your personal skills directory to get `/docx-template` available in a
 ```bash
 git clone https://github.com/eigenpal/docx-template-skill.git ~/.claude/skills/docx-template
 cd ~/.claude/skills/docx-template
-npm install
-npm run build
+bun install
+bun run build
 ```
 
 Or install per-project:
@@ -20,8 +20,8 @@ Or install per-project:
 ```bash
 git clone https://github.com/eigenpal/docx-template-skill.git .claude/skills/docx-template
 cd .claude/skills/docx-template
-npm install
-npm run build
+bun install
+bun run build
 ```
 
 ### Option B: npx init
@@ -35,8 +35,8 @@ Then install dependencies:
 
 ```bash
 cd .claude/skills/docx-template   # or ~/.claude/skills/docx-template
-npm install
-npm run build
+bun install
+bun run build
 ```
 
 ## Install for Cursor / Windsurf
@@ -70,7 +70,7 @@ Or just ask naturally:
 Compare original vs template side-by-side:
 
 ```bash
-npm run preview
+bun run preview
 ```
 
 ## Template Syntax
@@ -95,7 +95,7 @@ skill/
     analyze.ts           # Document analyzer (source)
     generate.ts          # Template generator (source)
     refine.ts            # Template refiner (source)
-    dist/                # Compiled JS (after npm run build)
+    dist/                # Compiled JS (after bun run build)
     prompts/             # Agent prompt guides
   rules/                 # Rules files for Cursor/Windsurf
 preview/                 # Vite+React preview app
@@ -106,9 +106,10 @@ bin/init.js              # CLI installer
 ## Development
 
 ```bash
-npm install
-npm run build            # compile TypeScript
-npm run preview          # launch preview app
+bun install
+bun run build            # compile TypeScript
+bun run test             # run styling preservation tests
+bun run preview          # launch preview app
 ```
 
 ## License

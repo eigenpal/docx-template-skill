@@ -13,7 +13,7 @@ This project uses `@eigenpal/docx-template-skill` to convert example DOCX files 
 - `node skill/agent/dist/analyze.js <file.docx>` — Extract document structure as JSON
 - `node skill/agent/dist/generate.js <original.docx> <mapping.json> [output.docx]` — Create template
 - `node skill/agent/dist/refine.js <template.docx> <mods.json> [output.docx]` — Modify template
-- `npm run preview` — Launch split-pane preview
+- `bun run preview` — Launch split-pane preview
 
 ## Workflow: Analyze → Generate → Refine
 

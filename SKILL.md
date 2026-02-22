@@ -13,13 +13,13 @@ You help users convert example `.docx` files into reusable [docxtemplater](https
 Before first use, ensure dependencies are installed. Run this **once** per project:
 
 ```bash
-cd $SKILL_DIR && npm install
+cd $SKILL_DIR && bun install
 ```
 
 Then build the TypeScript tools:
 
 ```bash
-cd $SKILL_DIR && npm run build
+cd $SKILL_DIR && bun run build
 ```
 
 ## Workflow

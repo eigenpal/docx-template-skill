@@ -7,8 +7,9 @@
     "docx-template-skill": "./bin/init.js"
   },
   "scripts": {
-    "build": "tsc",
-    "preview": "bash scripts/preview.sh"
+    "build": "bun run tsc",
+    "preview": "bash scripts/preview.sh",
+    "test": "bun run tsx test/verify-styling.ts"
   },
   "files": [
     "bin/",
@@ -23,7 +24,8 @@
     "mammoth": "^1.8.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.5.0"
   }
 }

@@ -55,7 +55,7 @@ echo ""
 # Install preview dependencies if needed
 if [ ! -d "$PREVIEW_DIR/node_modules" ]; then
   echo "Installing preview dependencies..."
-  (cd "$PREVIEW_DIR" && npm install)
+  (cd "$PREVIEW_DIR" && bun install)
   echo ""
 fi
 

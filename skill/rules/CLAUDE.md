@@ -39,7 +39,7 @@ node skill/agent/dist/refine.js templates/<template>.docx modifications.json tem
 
 ### Step 4: Preview
 ```bash
-npm run preview
+bun run preview
 ```
 
 ## Key Rules

@@ -10,7 +10,6 @@ bun run build            # typecheck + bundle agent tools into standalone JS
 bun run bundle           # bundle only (skip typecheck)
 bun run typecheck        # typecheck only (no output)
 bun run test             # run styling preservation tests
-bun run preview          # launch Vite+React preview app on localhost:3000
 ```
 
 ## Project structure
@@ -24,7 +23,6 @@ bun run preview          # launch Vite+React preview app on localhost:3000
 - `skills/docx-template/agent/refine.ts` — Surgical modifications to existing templates
 - `skills/docx-template/agent/dist/` — Pre-bundled standalone JS files (committed, no install needed at runtime)
 - `skills/docx-template/agent/prompts/` — Agent prompt guides for each phase
-- `preview/` — Vite+React split-pane compare/render UI
 - `test/verify-styling.ts` — Tests for XML manipulation correctness
 
 ## Distribution

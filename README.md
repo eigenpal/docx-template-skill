@@ -50,7 +50,6 @@ skills/docx-template/
     refine.ts            # Source
     dist/                # Pre-bundled standalone JS (committed)
     prompts/             # Agent prompt guides
-preview/                 # Vite+React preview app
 ```
 
 ## Development
@@ -59,7 +58,6 @@ preview/                 # Vite+React preview app
 bun install
 bun run build            # typecheck + bundle agent tools
 bun run test             # styling preservation tests
-bun run preview          # launch preview app
 ```
 
 ## License

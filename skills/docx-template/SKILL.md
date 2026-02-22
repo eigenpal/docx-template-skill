@@ -2,7 +2,7 @@
 name: docx-template
 description: Analyze example DOCX files and generate docxtemplater-compatible templates. Use when the user wants to create, modify, or inspect DOCX templates.
 argument-hint: "[path-to-docx or instruction]"
-allowed-tools: "Bash(node *) Bash(bun run preview)"
+allowed-tools: "Bash(node *)"
 ---
 
 # DOCX Template Generation

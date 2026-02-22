@@ -1,6 +1,4 @@
 node_modules/
-preview/node_modules/
-preview/dist/
 *.tsbuildinfo
 .DS_Store
 package-lock.json

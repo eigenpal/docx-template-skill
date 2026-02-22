@@ -4,14 +4,14 @@
     "lib": ["ES2022"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "rootDir": "skill/agent",
-    "outDir": "skill/agent/dist",
+    "rootDir": "skills/docx-template/agent",
+    "outDir": "skills/docx-template/agent/dist",
     "strict": true,
     "esModuleInterop": true,
     "declaration": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["skill/agent/**/*.ts"],
-  "exclude": ["skill/agent/dist"]
+  "include": ["skills/docx-template/agent/**/*.ts"],
+  "exclude": ["skills/docx-template/agent/dist"]
 }

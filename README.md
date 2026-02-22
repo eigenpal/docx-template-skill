@@ -1,63 +1,28 @@
 # @eigenpal/docx-template-skill
 
-Agentic generation of `.docx` templates from examples. Helps AI agents (Claude Code, Cursor, Windsurf) analyze example DOCX files and generate [docxtemplater](https://docxtemplater.com/)-compatible templates with a built-in compare preview.
+Agentic generation of `.docx` templates from examples. Helps AI agents (Claude Code, Cursor, Windsurf) analyze example DOCX files and generate [docxtemplater](https://docxtemplater.com/)-compatible templates.
 
 ## Install for Claude Code
 
-### Option A: Clone directly (recommended)
-
-Clone into your personal skills directory to get `/docx-template` available in all projects:
-
-```bash
-git clone https://github.com/eigenpal/docx-template-skill.git ~/.claude/skills/docx-template
-cd ~/.claude/skills/docx-template
-bun install
-bun run build
+```
+/plugin marketplace add eigenpal/docx-template-skill
+/plugin install docx-template
 ```
 
-Or install per-project:
+That's it. The tools are pre-bundled — no build step needed.
 
-```bash
-git clone https://github.com/eigenpal/docx-template-skill.git .claude/skills/docx-template
-cd .claude/skills/docx-template
-bun install
-bun run build
-```
+Then use `/docx-template` or just ask naturally:
 
-### Option B: npx init
-
-```bash
-npx @eigenpal/docx-template-skill init          # project-level (.claude/skills/)
-npx @eigenpal/docx-template-skill init --user    # user-level (~/.claude/skills/)
-```
-
-Then install dependencies:
-
-```bash
-cd .claude/skills/docx-template   # or ~/.claude/skills/docx-template
-bun install
-bun run build
-```
+> "Analyze the invoice in examples/ and create a template"
 
 ## Install for Cursor / Windsurf
 
 ```bash
 npx @eigenpal/docx-template-skill init --cursor
 npx @eigenpal/docx-template-skill init --windsurf
-npx @eigenpal/docx-template-skill init --all      # all detected environments
 ```
 
 ## Usage
-
-Once installed, use the `/docx-template` slash command in Claude Code:
-
-```
-/docx-template examples/invoice.docx
-```
-
-Or just ask naturally:
-
-> "Analyze the invoice in examples/ and create a template with fields for company name, date, and line items"
 
 ### Workflow
 
@@ -88,27 +53,28 @@ Uses [docxtemplater](https://docxtemplater.com/) syntax:
 ## Project Structure
 
 ```
-SKILL.md               # Claude Code skill definition (slash command)
-skill/
+.claude-plugin/
+  marketplace.json       # Plugin marketplace catalog
+  plugin.json            # Plugin metadata
+skills/docx-template/
+  SKILL.md               # Slash command definition
   AGENT_INSTRUCTIONS.md  # Agent workflow guide
   agent/
-    analyze.ts           # Document analyzer (source)
-    generate.ts          # Template generator (source)
-    refine.ts            # Template refiner (source)
-    dist/                # Compiled JS (after bun run build)
+    analyze.ts           # Source
+    generate.ts          # Source
+    refine.ts            # Source
+    dist/                # Pre-bundled standalone JS (committed)
     prompts/             # Agent prompt guides
-  rules/                 # Rules files for Cursor/Windsurf
+rules/                   # Cursor/Windsurf rules
 preview/                 # Vite+React preview app
-scripts/preview.sh       # Preview launcher
-bin/init.js              # CLI installer
 ```
 
 ## Development
 
 ```bash
 bun install
-bun run build            # compile TypeScript
-bun run test             # run styling preservation tests
+bun run build            # typecheck + bundle agent tools
+bun run test             # styling preservation tests
 bun run preview          # launch preview app
 ```
 

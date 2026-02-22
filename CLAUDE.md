@@ -1,42 +1,56 @@
 # @eigenpal/docx-template-skill
 
-AI agent skill for converting example DOCX files into docxtemplater-compatible templates.
+Claude Code plugin for converting example DOCX files into docxtemplater templates.
 
 ## Commands
 
 ```bash
-bun install              # install dependencies
-bun run build            # compile TypeScript (skill/agent/*.ts → skill/agent/dist/*.js)
+bun install              # install dev dependencies
+bun run build            # typecheck + bundle agent tools into standalone JS
+bun run bundle           # bundle only (skip typecheck)
+bun run typecheck        # typecheck only (no output)
 bun run test             # run styling preservation tests
 bun run preview          # launch Vite+React preview app on localhost:3000
 ```
 
 ## Project structure
 
-- `SKILL.md` — Claude Code skill definition (defines `/docx-template` slash command)
-- `bin/init.js` — CLI entry point (`npx @eigenpal/docx-template-skill init`)
-- `skill/agent/analyze.ts` — Extracts paragraphs, tables, headers/footers from DOCX; auto-detects dates, emails, currencies, phones, loop candidates
-- `skill/agent/generate.ts` — Creates docxtemplater templates from original DOCX + field mapping JSON. Style-preserving: only modifies `w:t` nodes that overlap the matched text, all other runs keep their formatting
-- `skill/agent/refine.ts` — Surgical modifications to existing templates (replaceTag, addVariable, removeTag, wrapLoop, addConditional)
-- `skill/agent/prompts/` — Markdown prompts guiding the agent through each phase
-- `skill/AGENT_INSTRUCTIONS.md` — Full workflow reference for the agent
-- `skill/rules/` — Rules files for Cursor (.cursorrules, .cursor/rules/docx.mdc) and Windsurf
+- `.claude-plugin/marketplace.json` — Plugin marketplace catalog (for `/plugin marketplace add`)
+- `.claude-plugin/plugin.json` — Plugin metadata
+- `skills/docx-template/SKILL.md` — Skill definition (defines `/docx-template` slash command)
+- `skills/docx-template/AGENT_INSTRUCTIONS.md` — Full workflow reference
+- `skills/docx-template/agent/analyze.ts` — Extracts paragraphs, tables, headers/footers; auto-detects dates, emails, currencies, phones, loop candidates
+- `skills/docx-template/agent/generate.ts` — Creates templates with style-preserving text replacement
+- `skills/docx-template/agent/refine.ts` — Surgical modifications to existing templates
+- `skills/docx-template/agent/dist/` — Pre-bundled standalone JS files (committed, no install needed at runtime)
+- `skills/docx-template/agent/prompts/` — Agent prompt guides for each phase
+- `rules/` — Rules files for Cursor and Windsurf
 - `preview/` — Vite+React split-pane compare/render UI
-- `scripts/preview.sh` — Auto-detects DOCX files and launches preview
+- `bin/init.js` — CLI for manual install / Cursor / Windsurf
 - `test/verify-styling.ts` — Tests for XML manipulation correctness
+
+## Distribution
+
+Users install via Claude Code plugin system:
+```
+/plugin marketplace add eigenpal/docx-template-skill
+/plugin install docx-template
+```
+
+Agent tools in `dist/` are pre-bundled with all dependencies (pizzip, xmldom, docxtemplater, mammoth) via `bun build --target node`. No `bun install` or build step needed after plugin install.
 
 ## Key architecture decisions
 
-- **Style-preserving replacement** (`replaceInParagraph`): Builds a character-offset map of all `w:t` segments, finds the match, and only modifies overlapping `w:t` nodes. Non-overlapping runs keep all formatting (bold, italic, color, font, size).
+- **Pre-bundled standalone tools**: `bun build --target node` inlines all deps into single JS files (~1.3MB analyze, ~0.5MB generate, ~0.3MB refine). Zero runtime dependencies.
+- **Style-preserving replacement** (`replaceInParagraph`): Only modifies `w:t` nodes that overlap the matched text. All other runs keep formatting.
 - **Direct-child traversal** (`getDirectChildElements`): Avoids `getElementsByTagNameNS` grabbing elements from nested tables.
-- **Single-row table loops**: Extra data rows are removed; `{#tag}` and `{/tag}` are injected as `w:r` runs within existing paragraphs in the same `w:tr`, so docxtemplater recognizes a row loop.
-- **Conditional tags**: Inserted as bare `w:p` paragraphs before/after the target, which is correct for docxtemplater's `paragraphLoop` mode.
-- **PizZip for DOCX manipulation**: Only the XML parts we explicitly rewrite are modified; all other zip entries (styles.xml, media, rels) pass through untouched.
+- **Single-row table loops**: Extra data rows removed; `{#tag}`/`{/tag}` injected as `w:r` runs in the same `w:tr`.
+- **Conditional tags**: Bare `w:p` paragraphs before/after target (correct for docxtemplater `paragraphLoop` mode).
 
 ## Conventions
 
-- Use **bun** for all dependency management and script running (not npm/yarn)
-- TypeScript source in `skill/agent/*.ts`, compiled output in `skill/agent/dist/`
-- Each agent utility is a standalone CLI script with a `main()` entry point
-- xmldom types use `any` aliases (`XmlEl`, `XmlDoc`) to avoid DOM type conflicts in Node
+- Use **bun** for all dependency management and scripts
+- TypeScript source in `skills/docx-template/agent/*.ts`
+- Bundled output in `skills/docx-template/agent/dist/*.js` (committed to git)
+- After changing source, run `bun run build` and commit the updated dist/ files
 - Template tags use camelCase: `{companyName}`, `{#items}`, `{showDiscount}`

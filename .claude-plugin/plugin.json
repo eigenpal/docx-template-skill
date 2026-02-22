@@ -1,0 +1,5 @@
+{
+  "name": "docx-template",
+  "version": "0.1.0",
+  "description": "Generate docxtemplater-compatible DOCX templates from example files"
+}

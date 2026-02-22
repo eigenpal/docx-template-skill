@@ -7,13 +7,17 @@
     "docx-template-skill": "./bin/init.js"
   },
   "scripts": {
-    "build": "bun run tsc",
+    "typecheck": "bun run tsc --noEmit",
+    "bundle": "bun build skills/docx-template/agent/analyze.ts --outfile skills/docx-template/agent/dist/analyze.js --target node && bun build skills/docx-template/agent/generate.ts --outfile skills/docx-template/agent/dist/generate.js --target node && bun build skills/docx-template/agent/refine.ts --outfile skills/docx-template/agent/dist/refine.js --target node",
+    "build": "bun run typecheck && bun run bundle",
     "preview": "bash scripts/preview.sh",
     "test": "bun run tsx test/verify-styling.ts"
   },
   "files": [
+    ".claude-plugin/",
+    "skills/",
+    "rules/",
     "bin/",
-    "skill/",
     "preview/",
     "scripts/"
   ],

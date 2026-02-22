@@ -1,42 +1,27 @@
 # @eigenpal/docx-template-skill
 
-Agentic generation of `.docx` templates from examples. Helps AI agents (Claude Code, Cursor, Windsurf) analyze example DOCX files and generate [docxtemplater](https://docxtemplater.com/)-compatible templates.
+Claude Code plugin for converting example DOCX files into reusable [docxtemplater](https://docxtemplater.com/)-compatible templates.
 
-## Install for Claude Code
+## Install
 
 ```
 /plugin marketplace add eigenpal/docx-template-skill
 /plugin install docx-template
 ```
 
-That's it. The tools are pre-bundled — no build step needed.
+The tools are pre-bundled — no build step needed.
 
 Then use `/docx-template` or just ask naturally:
 
 > "Analyze the invoice in examples/ and create a template"
 
-## Install for Cursor / Windsurf
+## Workflow
 
-```bash
-npx @eigenpal/docx-template-skill init --cursor
-npx @eigenpal/docx-template-skill init --windsurf
-```
-
-## Usage
-
-### Workflow
-
-1. **Analyze** — Place a `.docx` in `examples/` and ask the agent to analyze it
+1. **Analyze** — Place `.docx` files in `examples/` and ask the agent to analyze them
 2. **Generate** — Confirm which values become template variables; the agent creates the template
 3. **Refine** — Ask for modifications: rename tags, add conditionals, wrap loops
 
-### Preview
-
-Compare original vs template side-by-side:
-
-```bash
-bun run preview
-```
+Pass multiple example files to auto-detect which text varies (template variables) vs stays the same (static content).
 
 ## Template Syntax
 
@@ -65,7 +50,6 @@ skills/docx-template/
     refine.ts            # Source
     dist/                # Pre-bundled standalone JS (committed)
     prompts/             # Agent prompt guides
-rules/                   # Cursor/Windsurf rules
 preview/                 # Vite+React preview app
 ```
 

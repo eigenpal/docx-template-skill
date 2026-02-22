@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "description": "Agentic generation of .docx templates from examples using docxtemplater",
   "license": "MIT",
-  "bin": {
-    "docx-template-skill": "./bin/init.js"
-  },
   "scripts": {
     "typecheck": "bun run tsc --noEmit",
     "bundle": "bun build skills/docx-template/agent/analyze.ts --outfile skills/docx-template/agent/dist/analyze.js --target node && bun build skills/docx-template/agent/generate.ts --outfile skills/docx-template/agent/dist/generate.js --target node && bun build skills/docx-template/agent/refine.ts --outfile skills/docx-template/agent/dist/refine.js --target node",
@@ -16,8 +13,6 @@
   "files": [
     ".claude-plugin/",
     "skills/",
-    "rules/",
-    "bin/",
     "preview/",
     "scripts/"
   ],

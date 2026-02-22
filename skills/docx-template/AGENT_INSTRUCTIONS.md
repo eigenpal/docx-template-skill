@@ -11,10 +11,15 @@ Follow this three-phase workflow:
 1. If the user attaches a DOCX file, save it to `examples/`
 2. Run the analyzer to extract document structure:
    ```bash
-   node skill/agent/dist/analyze.js examples/<filename>.docx
+   # Single file
+   node agent/dist/analyze.js examples/<filename>.docx
+
+   # Multiple files — diffs them to find variables vs static content
+   node agent/dist/analyze.js examples/*.docx
    ```
 3. Review the JSON output: paragraphs, tables, headers/footers, suggested fields
-4. Present findings to the user — ask which values should become template variables
+4. When multiple files are provided, the tool compares them and highlights text that varies between examples (likely template variables) vs text that stays the same (static content)
+5. Present findings to the user — ask which values should become template variables
 
 ### Phase 2: Generate
 
@@ -41,7 +46,7 @@ Follow this three-phase workflow:
    ```
 2. Run the generator:
    ```bash
-   node skill/agent/dist/generate.js examples/<original>.docx field-mapping.json templates/<output>.docx
+   node agent/dist/generate.js examples/<original>.docx field-mapping.json templates/<output>.docx
    ```
 3. Create `sample_data.json` with example data matching all template tags
 4. Validate: load the template in docxtemplater with the sample data
@@ -63,7 +68,7 @@ If the user wants changes to an existing template:
    ```
 2. Run the refiner:
    ```bash
-   node skill/agent/dist/refine.js templates/<template>.docx modifications.json templates/<output>.docx
+   node agent/dist/refine.js templates/<template>.docx modifications.json templates/<output>.docx
    ```
 
 ## Docxtemplater Syntax Reference

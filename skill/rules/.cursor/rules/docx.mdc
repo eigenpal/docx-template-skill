@@ -1,0 +1,32 @@
+---
+description: DOCX template generation from example files using docxtemplater
+globs: ["examples/**/*.docx", "templates/**/*.docx", "field-mapping.json", "modifications.json", "sample_data.json"]
+alwaysApply: false
+---
+
+# DOCX Template Generation Skill
+
+This project uses `@eigenpal/docx-template-skill` to convert example DOCX files into reusable docxtemplater templates.
+
+## Tools
+
+- `node skill/agent/dist/analyze.js <file.docx>` — Extract document structure as JSON
+- `node skill/agent/dist/generate.js <original.docx> <mapping.json> [output.docx]` — Create template
+- `node skill/agent/dist/refine.js <template.docx> <mods.json> [output.docx]` — Modify template
+- `bun run preview` — Launch split-pane preview
+
+## Workflow: Analyze → Generate → Refine
+
+1. Always analyze first: `node skill/agent/dist/analyze.js examples/<file>.docx`
+2. Build `field-mapping.json` from analysis + user input
+3. Generate: `node skill/agent/dist/generate.js examples/<file>.docx field-mapping.json templates/<output>.docx`
+4. Create `sample_data.json` with matching test data
+5. Refine if needed with `modifications.json`
+
+## Rules
+
+- Read `skill/AGENT_INSTRUCTIONS.md` for full details
+- Use camelCase for template tags
+- `{#loop}{/loop}` for arrays, `{#bool}{/bool}` for conditionals
+- Loop tags go inside table cells (first cell opens, last cell closes)
+- Always create sample_data.json for validation

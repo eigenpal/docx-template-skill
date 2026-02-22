@@ -1,0 +1,7 @@
+node_modules/
+skill/agent/dist/
+preview/node_modules/
+preview/dist/
+*.tsbuildinfo
+.DS_Store
+package-lock.json

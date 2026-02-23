@@ -30,7 +30,7 @@ bun run test             # run styling preservation tests
 Users install via Claude Code plugin system:
 ```
 /plugin marketplace add eigenpal/docx-template-skill
-/plugin install docx-template
+/plugin install docx-template@eigenpal
 ```
 
 Agent tools in `dist/` are pre-bundled with all dependencies (pizzip, xmldom, docxtemplater, mammoth) via `bun build --target node`. No `bun install` or build step needed after plugin install.

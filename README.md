@@ -6,7 +6,7 @@ Claude Code plugin for converting example DOCX files into reusable [docxtemplate
 
 ```
 /plugin marketplace add eigenpal/docx-template-skill
-/plugin install docx-template
+/plugin install docx-template@eigenpal
 ```
 
 The tools are pre-bundled — no build step needed.

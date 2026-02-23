@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "docx-template",
-      "source": ".",
+      "source": "./",
       "description": "Generate docxtemplater-compatible DOCX templates from example files"
     }
   ]

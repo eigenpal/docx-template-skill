@@ -1,60 +1,65 @@
-# Analyze Prompt — Interpreting DOCX Analysis Results
+# Analyze — Extraction Output Format
 
-When you receive the JSON output from `analyze.js`, follow these steps:
+The `analyze.js` tool extracts content from binary DOCX files so you can read and reason about it.
 
-## Reading the AnalysisResult
+## Single-file output
 
-The JSON has these sections:
-- **paragraphs**: All paragraphs with text, runs (with styles), and style names
-- **tables**: Tables with rows and cells, including `headerRow` detection
-- **headers/footers**: Content from document headers and footers
-- **suggestedFields**: Auto-detected candidates for template variables
-- **plainText**: Mammoth-extracted clean text (useful for full-text search)
+```json
+{
+  "paragraphs": [
+    {
+      "text": "Full paragraph text",
+      "runs": [
+        { "text": "Full ", "style": { "bold": true } },
+        { "text": "paragraph text", "style": {} }
+      ],
+      "style": "Heading1",
+      "numbering": false
+    }
+  ],
+  "tables": [
+    {
+      "rows": [
+        {
+          "cells": [
+            {
+              "text": "Cell text",
+              "paragraphs": [{ "text": "Cell text", "runs": [...], "style": null }]
+            }
+          ]
+        }
+      ],
+      "headerRow": true
+    }
+  ],
+  "headers": [...],
+  "footers": [...],
+  "plainText": "Full document text extracted by mammoth"
+}
+```
 
-## Interpreting Suggested Fields
+## Multi-file output
 
-The analyzer detects patterns automatically. Map them to meaningful tag names:
+When multiple files are passed, each file's extraction is output separately:
 
-| Detected Pattern | Default Tag | Contextual Alternatives |
-|-----------------|-------------|------------------------|
-| Date | `date` | `invoiceDate`, `contractDate`, `startDate` |
-| Email | `email` | `senderEmail`, `recipientEmail` |
-| Currency | `amount` | `total`, `subtotal`, `unitPrice`, `discount` |
-| Phone | `phone` | `officePhone`, `mobile`, `fax` |
-| Repeating rows | `items` | `lineItems`, `employees`, `tasks` |
+```json
+{
+  "files": [
+    { "file": "invoice1.docx", "analysis": { "paragraphs": [...], "tables": [...], ... } },
+    { "file": "invoice2.docx", "analysis": { "paragraphs": [...], "tables": [...], ... } }
+  ]
+}
+```
 
-## Document Type Heuristics
+## Key fields
 
-### Invoices
-Look for: company logo area, invoice number, date, bill-to/ship-to addresses, line item table, subtotal/tax/total
-- Typical variables: `invoiceNumber`, `invoiceDate`, `client.name`, `client.address`, `items` (loop), `subtotal`, `tax`, `total`
+- **paragraphs**: Body paragraphs (excludes table content). Each has `text` (concatenated), `runs` (with per-run styling), optional `style` name, and `numbering` flag.
+- **tables**: Each table has `rows` → `cells` → `paragraphs`. `headerRow` is true when the first row has all-bold text.
+- **headers/footers**: Paragraphs extracted from document headers and footers.
+- **plainText**: Clean text from mammoth — useful for full-text overview.
 
-### Letters
-Look for: sender address, date, recipient address, salutation, body, closing, signature
-- Typical variables: `senderName`, `date`, `recipientName`, `recipientAddress`, `subject`, `body`
+## Notes
 
-### Contracts
-Look for: parties, effective date, terms, signature blocks
-- Typical variables: `partyA.name`, `partyB.name`, `effectiveDate`, `terms` (may be conditional sections), `signatureDate`
-
-### Reports
-Look for: title, date range, data tables, summary sections
-- Typical variables: `reportTitle`, `dateRange`, `data` (loop), `summary`
-
-## Questions to Ask the User
-
-After presenting the analysis, ask:
-
-1. "I found these potential template fields: [list]. Which should become variables?"
-2. "This table has [N] data rows — should it be a loop? What should the items be called?"
-3. "Are there any sections that should only appear conditionally?"
-4. "Are there any values I missed that should also be templated?"
-
-## Comparing Multiple Examples
-
-If the user provides multiple example files:
-1. Run analysis on each
-2. Compare paragraph text across examples
-3. Text that **differs** between examples → likely a variable
-4. Text that **stays the same** → likely static content
-5. Present the diff to the user for confirmation
+- Paragraphs inside tables appear only in the table structure, not in the top-level `paragraphs` array.
+- Run styling includes: `bold`, `italic`, `underline`, `fontSize`, `fontFamily`.
+- Tables are indexed in document order (0-based) — use this index for `tableIndex` in field mappings.

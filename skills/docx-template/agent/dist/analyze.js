@@ -36317,65 +36317,6 @@ function extractFromPart(zip, partPath) {
     tables: extractTables(body)
   };
 }
-var DATE_PATTERNS = [
-  /\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b/,
-  /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b/i,
-  /\b\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i
-];
-var EMAIL_PATTERN = /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/;
-var CURRENCY_PATTERN = /[$\u20AC\u00A3]\s?\d[\d,]*\.?\d*|\d[\d,]*\.?\d*\s?(?:USD|EUR|GBP)/;
-var PHONE_PATTERN = /\b(?:\+?\d{1,3}[\s\-]?)?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}\b/;
-function suggestFields(paragraphs, tables) {
-  const suggestions = [];
-  const seen = new Set;
-  function addSuggestion(value, tag, reason, location) {
-    const key = `${tag}:${value}`;
-    if (seen.has(key))
-      return;
-    seen.add(key);
-    suggestions.push({
-      value,
-      suggestedTag: tag,
-      reason,
-      location
-    });
-  }
-  for (const p of paragraphs) {
-    for (const pattern of DATE_PATTERNS) {
-      const match = p.text.match(pattern);
-      if (match) {
-        addSuggestion(match[0], "date", "Date detected", `paragraph`);
-      }
-    }
-    const emailMatch = p.text.match(EMAIL_PATTERN);
-    if (emailMatch) {
-      addSuggestion(emailMatch[0], "email", "Email address detected", `paragraph`);
-    }
-    const currencyMatch = p.text.match(CURRENCY_PATTERN);
-    if (currencyMatch) {
-      addSuggestion(currencyMatch[0], "amount", "Currency amount detected", `paragraph`);
-    }
-    const phoneMatch = p.text.match(PHONE_PATTERN);
-    if (phoneMatch) {
-      addSuggestion(phoneMatch[0], "phone", "Phone number detected", `paragraph`);
-    }
-  }
-  for (let ti = 0;ti < tables.length; ti++) {
-    const table = tables[ti];
-    if (table.rows.length > 2 && table.headerRow) {
-      addSuggestion(`Table ${ti + 1} (${table.rows.length} rows)`, `items`, "Repeating table rows detected — candidate for loop", `table ${ti + 1}`);
-    }
-    for (const row of table.rows) {
-      for (const cell of row.cells) {
-        const currMatch = cell.text.match(CURRENCY_PATTERN);
-        if (currMatch) {
-          addSuggestion(currMatch[0], "amount", "Currency in table cell", `table ${ti + 1}`);
-        }
-      }
-    }
-  }
-  return suggestions;
-}
 async function analyze(docxPath) {
   const buffer = fs.readFileSync(docxPath);
   const zip = new import_pizzip.default(buffer);
@@ -36400,64 +36341,13 @@ async function analyze(docxPath) {
     plainText = main.paragraphs.map((p) => p.text).join(`
 `);
   }
-  const suggestedFields = suggestFields([...main.paragraphs, ...headers, ...footers], main.tables);
   return {
     paragraphs: main.paragraphs,
     tables: main.tables,
     headers,
     footers,
-    suggestedFields,
     plainText
   };
-}
-function diffAnalyses(results) {
-  if (results.length < 2) {
-    return {
-      staticText: [],
-      varyingText: [],
-      suggestedFields: results[0]?.analysis.suggestedFields ?? []
-    };
-  }
-  const base = results[0].analysis;
-  const staticText = [];
-  const varyingText = [];
-  for (let i = 0;i < base.paragraphs.length; i++) {
-    const baseText = base.paragraphs[i].text;
-    const others = results.slice(1).map((r) => r.analysis.paragraphs[i]?.text ?? "");
-    const allSame = others.every((t) => t === baseText);
-    if (allSame) {
-      staticText.push(baseText);
-    } else {
-      varyingText.push({
-        paragraphIndex: i,
-        values: [baseText, ...others]
-      });
-    }
-  }
-  const seen = new Set;
-  const allSuggested = [];
-  for (const r of results) {
-    for (const f of r.analysis.suggestedFields) {
-      const key = `${f.suggestedTag}:${f.value}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        allSuggested.push(f);
-      }
-    }
-  }
-  for (const v of varyingText) {
-    const key = `varying:para${v.paragraphIndex}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      allSuggested.push({
-        value: v.values[0],
-        suggestedTag: `field${v.paragraphIndex}`,
-        reason: `Text varies across ${results.length} examples: ${v.values.map((s) => `"${s.substring(0, 40)}"`).join(", ")}`,
-        location: `paragraph ${v.paragraphIndex}`
-      });
-    }
-  }
-  return { staticText, varyingText, suggestedFields: allSuggested };
 }
 async function main() {
   const args = process.argv.slice(2);
@@ -36483,19 +36373,7 @@ async function main() {
       const analysis = await analyze(p);
       results.push({ file: path.basename(p), analysis });
     }
-    const diff = diffAnalyses(results);
-    const output = {
-      files: results.map((r) => r.file),
-      fileCount: results.length,
-      diff: {
-        staticParagraphs: diff.staticText.length,
-        varyingParagraphs: diff.varyingText.length,
-        varyingText: diff.varyingText
-      },
-      suggestedFields: diff.suggestedFields,
-      referenceAnalysis: results[0].analysis
-    };
-    console.log(JSON.stringify(output, null, 2));
+    console.log(JSON.stringify({ files: results }, null, 2));
   }
 }
 main().catch((err) => {

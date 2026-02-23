@@ -18,7 +18,7 @@ bun run test             # run styling preservation tests
 - `.claude-plugin/plugin.json` — Plugin metadata
 - `skills/docx-template/SKILL.md` — Skill definition (defines `/docx-template` slash command)
 - `skills/docx-template/AGENT_INSTRUCTIONS.md` — Full workflow reference
-- `skills/docx-template/agent/analyze.ts` — Extracts paragraphs, tables, headers/footers; auto-detects dates, emails, currencies, phones, loop candidates
+- `skills/docx-template/agent/analyze.ts` — Extracts paragraphs, tables, headers/footers, plain text from binary DOCX (Claude handles all analysis)
 - `skills/docx-template/agent/generate.ts` — Creates templates with style-preserving text replacement
 - `skills/docx-template/agent/refine.ts` — Surgical modifications to existing templates
 - `skills/docx-template/agent/dist/` — Pre-bundled standalone JS files (committed, no install needed at runtime)

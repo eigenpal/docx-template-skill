@@ -1,27 +1,58 @@
 # @eigenpal/docx-template-skill
 
-Claude Code plugin for converting example DOCX files into reusable [docxtemplater](https://docxtemplater.com/)-compatible templates.
+Convert filled-out DOCX documents into reusable [docxtemplater](https://docxtemplater.com/) templates. Works with both **Claude Code** and **Cursor**.
+
+Provide completed real-world documents — the agent analyzes them, identifies variables, loops, and conditionals, and generates production-ready templates with preserved styling.
 
 ## Install
+
+### Claude Code
 
 ```
 /plugin marketplace add eigenpal/docx-template-skill
 /plugin install docx-template@eigenpal
 ```
 
-The tools are pre-bundled — no build step needed.
+### Cursor
 
-Then use `/docx-template` or just ask naturally:
+Cursor loads skills from `.claude/skills/` automatically. If you already installed via Claude Code, it just works.
 
-> "Analyze the invoice in examples/ and create a template"
+Otherwise, clone the skill directly:
 
-## Workflow
+```bash
+# Project-level (this project only)
+git clone https://github.com/eigenpal/docx-template-skill .claude/skills/docx-template
 
-1. **Analyze** — Place `.docx` files in `examples/` and ask the agent to analyze them
-2. **Generate** — Confirm which values become template variables; the agent creates the template
-3. **Refine** — Ask for modifications: rename tags, add conditionals, wrap loops
+# User-level (all projects)
+git clone https://github.com/eigenpal/docx-template-skill ~/.claude/skills/docx-template
+```
 
-Pass multiple example files to auto-detect which text varies (template variables) vs stays the same (static content).
+### Verify installation
+
+Type `/docx-template` in the chat — it should appear as a slash command.
+
+## Usage
+
+```
+/docx-template [path-to-docx or instruction]
+```
+
+The skill supports three workflows:
+
+**1. Multiple filled-out documents** — provide 2+ completed documents (e.g., two contracts for different clients). The agent compares them to find what varies (variables) vs. what stays the same (boilerplate), and detects repeated sections (loops).
+
+**2. Input data + document** — provide a completed document alongside the source data (form, PDF, spreadsheet, email). The agent maps input fields to where they appear in the document.
+
+**3. Existing coded templates** — provide documents with `${var}` or `{{var}}` placeholders. The agent converts the syntax to docxtemplater format.
+
+## What it does
+
+- Extracts content from binary DOCX (paragraphs, tables, headers/footers, styling)
+- Identifies variables, loops (table-row and paragraph-section), and conditionals
+- Handles dynamic section numbering when loops generate numbered clauses
+- Preserves per-run formatting (bold, italic, font size, etc.) during replacement
+- Generates `sample_data.json` alongside every template
+- Fixes fragile floating tables by merging them into inline multi-column tables
 
 ## Template Syntax
 
@@ -38,9 +69,8 @@ Uses [docxtemplater](https://docxtemplater.com/) syntax:
 ## Project Structure
 
 ```
-.claude-plugin/
-  marketplace.json       # Plugin marketplace catalog
-  plugin.json            # Plugin metadata
+.claude-plugin/          # Claude Code plugin manifest
+.cursor-plugin/          # Cursor plugin manifest
 skills/docx-template/
   SKILL.md               # Slash command definition
   AGENT_INSTRUCTIONS.md  # Agent workflow guide

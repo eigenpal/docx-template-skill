@@ -17,9 +17,26 @@ Map exact text values to tag names:
 
 Rules:
 - Keys must be **exact matches** of text in the document
-- Values are camelCase tag names
+- **Values must be bare tag names — NO braces.** The tool wraps values in `{...}` automatically. `"companyName"` → `{companyName}`. Writing `"{companyName}"` → `{{companyName}}` which breaks.
 - Order matters: longer/more specific matches first to avoid partial replacements
 - Include text from headers/footers if needed (processed automatically)
+
+#### Converting existing template syntax
+
+When the source document already has placeholders (e.g., `${var}`, `{{var}}`), map them as variables:
+
+```json
+{
+  "variables": {
+    "${company_businessName}": "companyBusinessName",
+    "${company_ico}": "companyIco",
+    "${#items}": "#items",
+    "${/items}": "/items"
+  }
+}
+```
+
+**Every placeholder must be mapped.** Unmapped `${...}` or `{{...}}` patterns break docxtemplater validation. Extract the document, find all placeholders, and map every one.
 
 ### Loops Section
 
@@ -156,8 +173,11 @@ After generating the template:
 
 ## Common Pitfalls
 
-1. **Partial matches**: "John" might match "Johnson" — use the longest unique string
-2. **Repeated values**: If "Acme Corp" appears in multiple places, all instances get replaced (usually desired)
-3. **Run-split text**: If replacement fails silently, the text may be split across XML runs differently than expected. Check the raw XML.
-4. **Table structure**: Verify `tableIndex` by counting tables in the analysis output
-5. **Currency formatting**: Include the currency symbol in the sample data to match original formatting
+1. **Double braces**: The tool wraps values in `{...}`. If your mapping value already contains braces, you get `{{tag}}` which breaks. Values must be bare tag names: `"companyName"`, not `"{companyName}"`.
+2. **Unmapped placeholders**: When converting from `${...}` syntax, every placeholder must be mapped. Even one unmapped `${var}` causes docxtemplater to fail with "Duplicate open tag" errors.
+3. **Partial matches**: "John" might match "Johnson" — use the longest unique string
+4. **Repeated values**: If "Acme Corp" appears in multiple places, all instances get replaced (usually desired)
+5. **Run-split text**: If replacement fails silently, the text may be split across XML runs differently than expected. The tools handle cross-run matching, but check the raw XML if issues persist.
+6. **Table structure**: Verify `tableIndex` by counting tables in the analysis output
+7. **Currency formatting**: Include the currency symbol in the sample data to match original formatting
+8. **Coded templates vs. real examples**: When both are available, always use the coded template as the base — converting `${var}` → `{tag}` is far simpler and more reliable than reverse-engineering from filled-out examples where values overlap.

@@ -13,6 +13,7 @@ The typical workflow starts with **completed, real-world documents** — not bla
 
 - **Multiple filled-out documents**: Compare 2+ final documents (e.g., two signed contracts for different clients) to spot what changes between instances (variables) vs. what stays the same (boilerplate). Recognize where repeated structures like numbered clauses or person listings indicate loops.
 - **Input data + document**: The user provides a filled-out document alongside the source data that produced it (a form submission, PDF, spreadsheet, email). Map the input fields to where they appear in the document to determine the template structure — including which fields group into loops and how formatting like addresses should be preserved.
+- **Existing coded templates**: The user provides documents that already contain template placeholders in a different syntax (e.g., `${var}`, `{{var}}`). Convert the syntax to docxtemplater format. Always use the coded template as the base — don't try to reverse-engineer from filled-out examples when a coded template exists.
 
 The tools are pre-built and ready to use — no installation needed.
 

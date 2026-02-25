@@ -284,6 +284,70 @@ The user provides a completed document alongside the source data that produced i
 - Sample data: `templates/<name>_sample_data.json`
 - Field mappings: saved alongside for reference
 
+## Converting Documents with Existing Template Syntax
+
+Users may provide documents that already contain template placeholders in a non-docxtemplater syntax — e.g., `${variable_name}`, `{{variable}}`, `<%=var%>`, or similar. These are "coded templates" that need syntax conversion to docxtemplater's `{tag}` format.
+
+**Do NOT use real example documents as the base when coded templates exist.** The coded templates already have the correct structure, formatting, and placeholder positions. Converting their syntax is far simpler and more reliable than trying to reverse-engineer variables from filled-out examples.
+
+### How to convert
+
+Use the coded template as the base document and map every placeholder to a docxtemplater tag:
+
+```json
+{
+  "variables": {
+    "${company_businessName}": "companyBusinessName",
+    "${company_ico}": "companyIco",
+    "${seller_fullName}": "sellerFullName",
+    "${currentSeat_streetAndNumber}": "currentSeatStreetAndNumber"
+  }
+}
+```
+
+**Critical rules:**
+
+1. **Values must be bare tag names** — no braces. The generate tool wraps values in `{...}` automatically. Writing `"companyName"` produces `{companyName}`. Writing `"{companyName}"` produces `{{companyName}}` which breaks.
+
+2. **Map EVERY placeholder** — any unmapped `${...}` or `{{...}}` patterns left in the document will cause docxtemplater validation to fail with "Duplicate open tag" or similar errors. Extract the document, find all placeholders, and map every single one.
+
+3. **Convert naming conventions** — source placeholders often use `snake_case` (e.g., `${company_business_name}`). Convert to `camelCase` for docxtemplater tags (`companyBusinessName`).
+
+4. **Cross-run splitting is handled** — Word splits text across XML runs unpredictably. `${company_businessName}` might be spread across 3-4 `<w:t>` elements. The tools concatenate runs before matching, so the full `${company_businessName}` string will be found and replaced correctly even when split.
+
+### Finding all placeholders
+
+After extraction, search the plain text output for all placeholder patterns:
+
+- Look for `${...}` patterns in paragraphs, tables, headers, and footers
+- Check that your mapping covers every single one
+- Also check for loop/conditional syntax like `${#items}`, `${/items}` if the source uses those
+
+### Loop and conditional syntax
+
+If the source template already has loop/conditional markers in its own syntax (e.g., `${#items}...${/items}`), convert them to docxtemplater syntax. Map them as variables:
+
+```json
+{
+  "variables": {
+    "${#items}": "#items",
+    "${/items}": "/items",
+    "${#showDiscount}": "#showDiscount",
+    "${/showDiscount}": "/showDiscount"
+  }
+}
+```
+
+The tool will produce `{#items}`, `{/items}`, etc. — valid docxtemplater loop/conditional tags.
+
+### Example workflow
+
+1. Extract the coded template: `node agent/dist/analyze.js coded_template.docx`
+2. Find all `${...}` patterns in the extracted text
+3. Build `field-mapping.json` mapping every `${var}` → `camelCaseTag`
+4. Generate: `node agent/dist/generate.js coded_template.docx field-mapping.json output_template.docx`
+5. Create `sample_data.json` with test values for all tags
+
 ## Common Pitfalls
 
 1. **Run splitting**: Word splits text across XML runs. The tools handle this by concatenating runs before matching. If a replacement fails, check the raw XML.
@@ -291,3 +355,6 @@ The user provides a completed document alongside the source data that produced i
 3. **Merged cells**: Table cells with `gridSpan` may shift column indices. Verify loop field mappings.
 4. **Nested tables**: Only top-level tables are indexed. Nested tables need manual handling.
 5. **Header/footer variables**: These are processed separately — variables in headers/footers work independently.
+6. **Double braces from mapping values**: The generate tool wraps values in `{...}` automatically. Mapping values must be bare tag names (`"companyName"`), never include braces (`"{companyName}"`). Getting this wrong produces `{{tag}}` which docxtemplater rejects.
+7. **Unmapped placeholders**: When converting `${...}` syntax, every single placeholder must be mapped. Even one leftover `${var}` causes "Duplicate open tag" validation errors.
+8. **Use coded templates as base**: When both coded templates and real examples are available, always use the coded template. Converting `${var}` → `{tag}` is a simple find-replace. Reverse-engineering from real examples introduces overlapping values, substring matches, and fragile mappings.

@@ -91,7 +91,8 @@ If the user wants changes to an existing template:
     { "type": "addVariable", "searchText": "Some static text", "tag": "dynamicField" },
     { "type": "removeTag", "oldTag": "unusedField" },
     { "type": "wrapLoop", "loopTag": "sections", "startText": "{firstField}", "endText": "{lastField}" },
-    { "type": "addConditional", "conditionalTag": "showNote", "paragraphText": "Note:" }
+    { "type": "addConditional", "conditionalTag": "showNote", "paragraphText": "Note:" },
+    { "type": "mergeFloatingTables" }
   ]
 }
 ```
@@ -348,6 +349,40 @@ The tool will produce `{#items}`, `{/items}`, etc. — valid docxtemplater loop/
 4. Generate: `node agent/dist/generate.js coded_template.docx field-mapping.json output_template.docx`
 5. Create `sample_data.json` with test values for all tags
 
+## Fixing Floating Tables
+
+Word documents often use **floating tables** (positioned with `w:tblpPr` absolute coordinates) for side-by-side layouts like signature blocks. These are fragile — small offset differences cause misalignment, and they don't reflow well.
+
+Use the refine tool's `mergeFloatingTables` to convert them into a single inline multi-column table:
+
+```json
+{
+  "modifications": [
+    { "type": "mergeFloatingTables" }
+  ]
+}
+```
+
+**Auto-detection mode** (no `tableIndices`): Finds all floating tables in the document and merges them into one inline table. Use this when all floating tables should be combined.
+
+**Explicit mode** (with `tableIndices`): Merge specific tables by their 0-based indices:
+
+```json
+{
+  "modifications": [
+    { "type": "mergeFloatingTables", "tableIndices": [0, 1] }
+  ]
+}
+```
+
+The merged table:
+- Combines cells side-by-side (table 1's columns + table 2's columns per row)
+- Has no borders (preserving the visual appearance of separate blocks)
+- Removes empty paragraphs that were between the original floating tables
+- Uses fixed layout with equal column widths
+
+**When to use this**: Signature blocks, side-by-side address blocks, or any layout that uses multiple floating tables positioned next to each other. Always prefer a single inline table — it's simpler, more reliable, and easier to template.
+
 ## Common Pitfalls
 
 1. **Run splitting**: Word splits text across XML runs. The tools handle this by concatenating runs before matching. If a replacement fails, check the raw XML.
@@ -355,6 +390,7 @@ The tool will produce `{#items}`, `{/items}`, etc. — valid docxtemplater loop/
 3. **Merged cells**: Table cells with `gridSpan` may shift column indices. Verify loop field mappings.
 4. **Nested tables**: Only top-level tables are indexed. Nested tables need manual handling.
 5. **Header/footer variables**: These are processed separately — variables in headers/footers work independently.
-6. **Double braces from mapping values**: The generate tool wraps values in `{...}` automatically. Mapping values must be bare tag names (`"companyName"`), never include braces (`"{companyName}"`). Getting this wrong produces `{{tag}}` which docxtemplater rejects.
-7. **Unmapped placeholders**: When converting `${...}` syntax, every single placeholder must be mapped. Even one leftover `${var}` causes "Duplicate open tag" validation errors.
-8. **Use coded templates as base**: When both coded templates and real examples are available, always use the coded template. Converting `${var}` → `{tag}` is a simple find-replace. Reverse-engineering from real examples introduces overlapping values, substring matches, and fragile mappings.
+6. **Floating tables**: Word uses absolutely-positioned floating tables for side-by-side layouts (signature blocks, etc.). These are fragile and misalign easily. Use `mergeFloatingTables` in the refine tool to convert them to a single inline table.
+7. **Double braces from mapping values**: The generate tool wraps values in `{...}` automatically. Mapping values must be bare tag names (`"companyName"`), never include braces (`"{companyName}"`). Getting this wrong produces `{{tag}}` which docxtemplater rejects.
+8. **Unmapped placeholders**: When converting `${...}` syntax, every single placeholder must be mapped. Even one leftover `${var}` causes "Duplicate open tag" validation errors.
+9. **Use coded templates as base**: When both coded templates and real examples are available, always use the coded template. Converting `${var}` → `{tag}` is a simple find-replace. Reverse-engineering from real examples introduces overlapping values, substring matches, and fragile mappings.

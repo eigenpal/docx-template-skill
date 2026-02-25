@@ -8275,6 +8275,19 @@ var $onWarningStopParsing = domParser.onWarningStopParsing;
 
 // skills/docx-template/agent/refine.ts
 var WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+function getDirectChildElements(parent, localName) {
+  const result = [];
+  const children = parent.childNodes;
+  if (!children)
+    return result;
+  for (let i = 0;i < children.length; i++) {
+    const child = children[i];
+    if (child.nodeType === 1 && child.localName === localName && child.namespaceURI === WORD_NS) {
+      result.push(child);
+    }
+  }
+  return result;
+}
 function concatenateRunText(paragraph) {
   const runs = paragraph.getElementsByTagNameNS(WORD_NS, "r");
   let text = "";
@@ -8423,6 +8436,117 @@ function applyModification(doc, body, mod) {
           break;
         }
       }
+      break;
+    }
+    case "mergeFloatingTables": {
+      const tables = getDirectChildElements(body, "tbl");
+      let indicesToMerge;
+      if (mod.tableIndices && mod.tableIndices.length >= 2) {
+        indicesToMerge = mod.tableIndices;
+      } else {
+        indicesToMerge = [];
+        for (let i = 0;i < tables.length; i++) {
+          const tblPr = getDirectChildElements(tables[i], "tblPr")[0];
+          if (tblPr) {
+            const tblpPr = getDirectChildElements(tblPr, "tblpPr")[0];
+            if (tblpPr) {
+              indicesToMerge.push(i);
+            }
+          }
+        }
+      }
+      if (indicesToMerge.length < 2)
+        break;
+      const tablesToMerge = indicesToMerge.map((i) => tables[i]);
+      const allTableRows = tablesToMerge.map((t) => getDirectChildElements(t, "tr"));
+      const maxRows = Math.max(...allTableRows.map((r) => r.length));
+      const colCounts = allTableRows.map((rows) => {
+        if (rows.length === 0)
+          return 1;
+        return getDirectChildElements(rows[0], "tc").length;
+      });
+      const totalCols = colCounts.reduce((a, b) => a + b, 0);
+      const newTable = doc.createElementNS(WORD_NS, "w:tbl");
+      const newTblPr = doc.createElementNS(WORD_NS, "w:tblPr");
+      const tblW = doc.createElementNS(WORD_NS, "w:tblW");
+      tblW.setAttribute("w:w", "0");
+      tblW.setAttribute("w:type", "auto");
+      newTblPr.appendChild(tblW);
+      const tblBorders = doc.createElementNS(WORD_NS, "w:tblBorders");
+      for (const side of ["top", "left", "bottom", "right", "insideH", "insideV"]) {
+        const border = doc.createElementNS(WORD_NS, `w:${side}`);
+        border.setAttribute("w:val", "none");
+        border.setAttribute("w:sz", "0");
+        border.setAttribute("w:space", "0");
+        border.setAttribute("w:color", "auto");
+        tblBorders.appendChild(border);
+      }
+      newTblPr.appendChild(tblBorders);
+      const tblLayout = doc.createElementNS(WORD_NS, "w:tblLayout");
+      tblLayout.setAttribute("w:type", "fixed");
+      newTblPr.appendChild(tblLayout);
+      newTable.appendChild(newTblPr);
+      const tblGrid = doc.createElementNS(WORD_NS, "w:tblGrid");
+      const colWidth = Math.floor(9000 / totalCols);
+      for (let c = 0;c < totalCols; c++) {
+        const gridCol = doc.createElementNS(WORD_NS, "w:gridCol");
+        gridCol.setAttribute("w:w", String(colWidth));
+        tblGrid.appendChild(gridCol);
+      }
+      newTable.appendChild(tblGrid);
+      for (let ri = 0;ri < maxRows; ri++) {
+        const newRow = doc.createElementNS(WORD_NS, "w:tr");
+        for (let ti = 0;ti < tablesToMerge.length; ti++) {
+          const rows = allTableRows[ti];
+          const expectedCols = colCounts[ti];
+          if (ri < rows.length) {
+            const cells = getDirectChildElements(rows[ri], "tc");
+            for (const cell of cells) {
+              const clonedCell = cell.cloneNode(true);
+              newRow.appendChild(clonedCell);
+            }
+            for (let pad = cells.length;pad < expectedCols; pad++) {
+              const emptyCell = doc.createElementNS(WORD_NS, "w:tc");
+              const emptyPara = doc.createElementNS(WORD_NS, "w:p");
+              emptyCell.appendChild(emptyPara);
+              newRow.appendChild(emptyCell);
+            }
+          } else {
+            for (let pad = 0;pad < expectedCols; pad++) {
+              const emptyCell = doc.createElementNS(WORD_NS, "w:tc");
+              const emptyPara = doc.createElementNS(WORD_NS, "w:p");
+              emptyCell.appendChild(emptyPara);
+              newRow.appendChild(emptyCell);
+            }
+          }
+        }
+        newTable.appendChild(newRow);
+      }
+      body.insertBefore(newTable, tablesToMerge[0]);
+      const firstTable = tablesToMerge[0];
+      const lastTable = tablesToMerge[tablesToMerge.length - 1];
+      const nodesToRemove = [];
+      let inRange = false;
+      const bodyChildren = body.childNodes;
+      for (let i = 0;i < bodyChildren.length; i++) {
+        const node = bodyChildren[i];
+        if (node === firstTable) {
+          inRange = true;
+          nodesToRemove.push(node);
+          continue;
+        }
+        if (node === lastTable) {
+          nodesToRemove.push(node);
+          break;
+        }
+        if (inRange) {
+          nodesToRemove.push(node);
+        }
+      }
+      for (const node of nodesToRemove) {
+        body.removeChild(node);
+      }
+      console.error(`Merged ${tablesToMerge.length} floating tables into 1 inline table (${totalCols} columns, ${maxRows} rows)`);
       break;
     }
   }

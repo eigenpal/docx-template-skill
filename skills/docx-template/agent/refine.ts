@@ -15,7 +15,8 @@ interface Modification {
     | "addVariable"
     | "removeTag"
     | "wrapLoop"
-    | "addConditional";
+    | "addConditional"
+    | "mergeFloatingTables";
   oldTag?: string;
   newTag?: string;
   searchText?: string;
@@ -25,6 +26,7 @@ interface Modification {
   endText?: string;
   conditionalTag?: string;
   paragraphText?: string;
+  tableIndices?: number[];
 }
 
 interface ModificationsFile {
@@ -34,6 +36,24 @@ interface ModificationsFile {
 // ---------------------------------------------------------------------------
 // Helpers (duplicated from generate.ts to keep each file standalone)
 // ---------------------------------------------------------------------------
+
+/** Get only direct child elements with given localName (avoids nested matches). */
+function getDirectChildElements(parent: XmlEl, localName: string): XmlEl[] {
+  const result: XmlEl[] = [];
+  const children = parent.childNodes;
+  if (!children) return result;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (
+      child.nodeType === 1 &&
+      child.localName === localName &&
+      child.namespaceURI === WORD_NS
+    ) {
+      result.push(child);
+    }
+  }
+  return result;
+}
 
 function concatenateRunText(paragraph: XmlEl): string {
   const runs = paragraph.getElementsByTagNameNS(WORD_NS, "r");
@@ -238,6 +258,160 @@ function applyModification(
           break;
         }
       }
+      break;
+    }
+
+    case "mergeFloatingTables": {
+      // Merge multiple floating tables into a single inline multi-column table.
+      // Detects floating tables (w:tblpPr) and combines their cells side-by-side.
+      const tables = getDirectChildElements(body, "tbl");
+
+      // Determine which tables to merge
+      let indicesToMerge: number[];
+      if (mod.tableIndices && mod.tableIndices.length >= 2) {
+        indicesToMerge = mod.tableIndices;
+      } else {
+        // Auto-detect: find all consecutive floating tables
+        indicesToMerge = [];
+        for (let i = 0; i < tables.length; i++) {
+          const tblPr = getDirectChildElements(tables[i], "tblPr")[0];
+          if (tblPr) {
+            const tblpPr = getDirectChildElements(tblPr, "tblpPr")[0];
+            if (tblpPr) {
+              indicesToMerge.push(i);
+            }
+          }
+        }
+      }
+
+      if (indicesToMerge.length < 2) break;
+
+      const tablesToMerge = indicesToMerge.map((i) => tables[i]);
+
+      // Collect rows from each table
+      const allTableRows: XmlEl[][] = tablesToMerge.map((t) =>
+        getDirectChildElements(t, "tr")
+      );
+      const maxRows = Math.max(...allTableRows.map((r) => r.length));
+
+      // Count total columns for the merged table grid
+      const colCounts = allTableRows.map((rows) => {
+        if (rows.length === 0) return 1;
+        return getDirectChildElements(rows[0], "tc").length;
+      });
+      const totalCols = colCounts.reduce((a, b) => a + b, 0);
+
+      // Build the merged table
+      const newTable = doc.createElementNS(WORD_NS, "w:tbl");
+
+      // Create tblPr (inline, no floating, no borders)
+      const newTblPr = doc.createElementNS(WORD_NS, "w:tblPr");
+      const tblW = doc.createElementNS(WORD_NS, "w:tblW");
+      tblW.setAttribute("w:w", "0");
+      tblW.setAttribute("w:type", "auto");
+      newTblPr.appendChild(tblW);
+
+      // No borders
+      const tblBorders = doc.createElementNS(WORD_NS, "w:tblBorders");
+      for (const side of ["top", "left", "bottom", "right", "insideH", "insideV"]) {
+        const border = doc.createElementNS(WORD_NS, `w:${side}`);
+        border.setAttribute("w:val", "none");
+        border.setAttribute("w:sz", "0");
+        border.setAttribute("w:space", "0");
+        border.setAttribute("w:color", "auto");
+        tblBorders.appendChild(border);
+      }
+      newTblPr.appendChild(tblBorders);
+
+      // Table layout fixed for predictable widths
+      const tblLayout = doc.createElementNS(WORD_NS, "w:tblLayout");
+      tblLayout.setAttribute("w:type", "fixed");
+      newTblPr.appendChild(tblLayout);
+
+      newTable.appendChild(newTblPr);
+
+      // Create tblGrid with equal column widths
+      const tblGrid = doc.createElementNS(WORD_NS, "w:tblGrid");
+      const colWidth = Math.floor(9000 / totalCols);
+      for (let c = 0; c < totalCols; c++) {
+        const gridCol = doc.createElementNS(WORD_NS, "w:gridCol");
+        gridCol.setAttribute("w:w", String(colWidth));
+        tblGrid.appendChild(gridCol);
+      }
+      newTable.appendChild(tblGrid);
+
+      // Build merged rows
+      for (let ri = 0; ri < maxRows; ri++) {
+        const newRow = doc.createElementNS(WORD_NS, "w:tr");
+
+        for (let ti = 0; ti < tablesToMerge.length; ti++) {
+          const rows = allTableRows[ti];
+          const expectedCols = colCounts[ti];
+
+          if (ri < rows.length) {
+            // Copy cells from this table's row
+            const cells = getDirectChildElements(rows[ri], "tc");
+            for (const cell of cells) {
+              // Clone the cell and strip any width constraints
+              const clonedCell = cell.cloneNode(true);
+              newRow.appendChild(clonedCell);
+            }
+            // Pad if this row has fewer cells than expected
+            for (let pad = cells.length; pad < expectedCols; pad++) {
+              const emptyCell = doc.createElementNS(WORD_NS, "w:tc");
+              const emptyPara = doc.createElementNS(WORD_NS, "w:p");
+              emptyCell.appendChild(emptyPara);
+              newRow.appendChild(emptyCell);
+            }
+          } else {
+            // This table has fewer rows — add empty cells
+            for (let pad = 0; pad < expectedCols; pad++) {
+              const emptyCell = doc.createElementNS(WORD_NS, "w:tc");
+              const emptyPara = doc.createElementNS(WORD_NS, "w:p");
+              emptyCell.appendChild(emptyPara);
+              newRow.appendChild(emptyCell);
+            }
+          }
+        }
+
+        newTable.appendChild(newRow);
+      }
+
+      // Insert the merged table before the first original table
+      body.insertBefore(newTable, tablesToMerge[0]);
+
+      // Remove original tables and empty paragraphs between them
+      // Collect nodes between first and last table to check for empty paragraphs
+      const firstTable = tablesToMerge[0];
+      const lastTable = tablesToMerge[tablesToMerge.length - 1];
+      const nodesToRemove: XmlEl[] = [];
+
+      let inRange = false;
+      const bodyChildren = body.childNodes;
+      for (let i = 0; i < bodyChildren.length; i++) {
+        const node = bodyChildren[i];
+        if (node === firstTable) {
+          inRange = true;
+          nodesToRemove.push(node);
+          continue;
+        }
+        if (node === lastTable) {
+          nodesToRemove.push(node);
+          break;
+        }
+        if (inRange) {
+          // Remove empty paragraphs and other floating tables between them
+          nodesToRemove.push(node);
+        }
+      }
+
+      for (const node of nodesToRemove) {
+        body.removeChild(node);
+      }
+
+      console.error(
+        `Merged ${tablesToMerge.length} floating tables into 1 inline table (${totalCols} columns, ${maxRows} rows)`
+      );
       break;
     }
   }

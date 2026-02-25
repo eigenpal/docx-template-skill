@@ -1,13 +1,18 @@
 ---
 name: docx-template
-description: Analyze example DOCX files and generate docxtemplater-compatible templates. Use when the user wants to create, modify, or inspect DOCX templates.
+description: Convert filled-out DOCX documents into reusable docxtemplater templates. Compares multiple completed documents to identify what varies vs. what's boilerplate, and maps input data (forms, PDFs, spreadsheets) to template structure. Use when the user wants to create, modify, or inspect DOCX templates.
 argument-hint: "[path-to-docx or instruction]"
 allowed-tools: "Bash(node *)"
 ---
 
 # DOCX Template Generation
 
-You help users convert example `.docx` files into reusable [docxtemplater](https://docxtemplater.com/) templates.
+You help users convert filled-out `.docx` documents into reusable [docxtemplater](https://docxtemplater.com/) templates.
+
+The typical workflow starts with **completed, real-world documents** — not blank forms. You analyze them to reverse-engineer the template structure:
+
+- **Multiple filled-out documents**: Compare 2+ final documents (e.g., two signed contracts for different clients) to spot what changes between instances (variables) vs. what stays the same (boilerplate). Recognize where repeated structures like numbered clauses or person listings indicate loops.
+- **Input data + document**: The user provides a filled-out document alongside the source data that produced it (a form submission, PDF, spreadsheet, email). Map the input fields to where they appear in the document to determine the template structure — including which fields group into loops and how formatting like addresses should be preserved.
 
 The tools are pre-built and ready to use — no installation needed.
 
@@ -37,12 +42,11 @@ node agent/dist/analyze.js examples/*.docx
 
 ### Step 2: Decide what to template
 
-You are the analyst. Read the extracted content and any extra input data (PDFs, JSON, emails, etc.) the user provides. Decide what should become template variables by reasoning about:
+You are the analyst. Read the extracted content and reason about the template structure:
 
-- What content is likely to change between uses (names, dates, amounts, addresses)
-- What stays the same (labels, headings, boilerplate)
-- If multiple DOCX examples are provided, compare them to spot varying content
-- If input data is provided, match data fields to document content
+- **Compare multiple documents**: If 2+ DOCX files are provided, diff them semantically. Text that changes between documents is a variable; text that stays the same is boilerplate. Sections that appear N times in one doc but M times in another are loops.
+- **Map input data to document**: If the user provides source data (form, PDF, spreadsheet, email), trace each data field to where it lands in the document. Fields that repeat per item (e.g., per shareholder, per line item) indicate a loop. Preserve the document's formatting patterns — e.g., if an address spans multiple lines with specific punctuation, the template tags should match that layout.
+- **Identify structure, not just values**: Look beyond simple variable substitution. Recognize repeated numbered sections, person listings, and signature blocks as loops. Notice when section numbering depends on the number of repeated items.
 
 ### Step 3: Generate the template
 
@@ -76,9 +80,11 @@ node agent/dist/refine.js templates/<template>.docx modifications.json templates
 ## Rules
 
 - Use **camelCase** for all tag names (`companyName`, not `company_name`)
-- Use **plural nouns** for loops: `items`, `employees`
+- Use **plural nouns** for loops: `items`, `employees`, `transferClauses`
 - Use **boolean prefixes** for conditionals: `showDiscount`, `hasSignature`
 - Always extract before generating — never guess at document structure
 - Always create `sample_data.json` alongside templates
-- Loop tags go inside table cells (same row), not as separate paragraphs around rows
+- **Table-row loops**: Tags go inside table cells (same row), not as separate paragraphs around rows
+- **Paragraph-section loops**: Use generate + refine (`wrapLoop`) for repeated paragraph blocks (numbered clauses, person listings, signature blocks). This is the most common loop type in legal/formal documents.
+- **Section numbering**: When a loop generates numbered sections, all section numbers become variables — inside the loop (per-item) and after it (computed from array length). See `AGENT_INSTRUCTIONS.md` for the full pattern.
 - See `agent/prompts/analyze.md` and `agent/prompts/generate.md` for detailed guidance

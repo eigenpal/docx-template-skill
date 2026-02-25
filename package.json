@@ -11,6 +11,7 @@
   },
   "files": [
     ".claude-plugin/",
+    ".cursor-plugin/",
     "skills/"
   ],
   "dependencies": {

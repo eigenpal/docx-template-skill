@@ -1,6 +1,6 @@
 # @eigenpal/docx-template-skill
 
-Claude Code plugin for converting example DOCX files into docxtemplater templates.
+Plugin for converting example DOCX files into docxtemplater templates. Works with both Claude Code and Cursor.
 
 ## Commands
 
@@ -14,8 +14,9 @@ bun run test             # run styling preservation tests
 
 ## Project structure
 
-- `.claude-plugin/marketplace.json` — Plugin marketplace catalog (for `/plugin marketplace add`)
-- `.claude-plugin/plugin.json` — Plugin metadata
+- `.claude-plugin/marketplace.json` — Claude Code marketplace catalog (for `/plugin marketplace add`)
+- `.claude-plugin/plugin.json` — Claude Code plugin metadata
+- `.cursor-plugin/plugin.json` — Cursor plugin metadata (for `/add-plugin`)
 - `skills/docx-template/SKILL.md` — Skill definition (defines `/docx-template` slash command)
 - `skills/docx-template/AGENT_INSTRUCTIONS.md` — Full workflow reference
 - `skills/docx-template/agent/analyze.ts` — Extracts paragraphs, tables, headers/footers, plain text from binary DOCX (Claude handles all analysis)
@@ -27,13 +28,18 @@ bun run test             # run styling preservation tests
 
 ## Distribution
 
-Users install via Claude Code plugin system:
+**Claude Code:**
 ```
 /plugin marketplace add eigenpal/docx-template-skill
 /plugin install docx-template@eigenpal
 ```
 
-Agent tools in `dist/` are pre-bundled with all dependencies (pizzip, xmldom, docxtemplater, mammoth) via `bun build --target node`. No `bun install` or build step needed after plugin install.
+**Cursor:**
+```
+/add-plugin https://github.com/eigenpal/docx-template-skill
+```
+
+Agent tools in `dist/` are pre-bundled with all dependencies (pizzip, xmldom, docxtemplater, mammoth) via `bun build --target node`. No `bun install` or build step needed after plugin install. Both editors auto-discover the `skills/` directory and the `/docx-template` slash command.
 
 ## Key architecture decisions
 
